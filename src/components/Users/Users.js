@@ -1,25 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import './Users.css';
+import React, { useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { fetchUsers } from '../../features/usersSlice';
 import { Link } from 'react-router-dom';
+import { selectAllUsers } from '../../features/usersSlice';
 
-function Users() {
-  const [users, setUsers] = useState([]);
+const Users = () => {
+  const users = useSelector(selectAllUsers);
+  const dispatch = useDispatch();
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  const fetchUsers = async () => {
-    try {
-      const response = await fetch(
-        'https://jsonplaceholder.typicode.com/users'
-      );
-      const data = await response.json();
-      setUsers(data);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-    }
-  };
+    dispatch(fetchUsers());
+  }, [dispatch]);
 
   return (
     <div className="users-container">
@@ -37,7 +28,7 @@ function Users() {
               <td>{user.id}</td>
               <td>{user.name}</td>
               <td>
-                <Link to={`/posts?userId=${user.id}`}>
+                <Link to={`/posts/${user.id}`}>
                   <button>Posts</button>
                 </Link>
               </td>
@@ -47,6 +38,6 @@ function Users() {
       </table>
     </div>
   );
-}
+};
 
 export default Users;

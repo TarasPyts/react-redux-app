@@ -1,123 +1,74 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useEffect, useState } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import {
+  fetchPosts,
+  selectPostsByUserId,
+  addPost,
+} from '../../features/postsSlice';
+import { useParams } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
+import { v4 as uuidv4 } from 'uuid';
 
 const Posts = () => {
-  const [posts, setPosts] = useState([]);
-  const [showPopup, setShowPopup] = useState(false);
-  const [newPost, setNewPost] = useState({
-    title: '',
-    body: '',
-  });
+  const { userId } = useParams();
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const [newPost, setNewPost] = useState({ title: '', body: '' });
+
+  const posts = useSelector((state) =>
+    selectPostsByUserId(state, parseInt(userId))
+  );
 
   useEffect(() => {
-    fetchPosts();
-  }, []);
-
-  const fetchPosts = async () => {
-    try {
-      const response = await axios.get(
-        'https://jsonplaceholder.typicode.com/posts?userId=1'
-      );
-      setPosts(response.data);
-    } catch (error) {
-      console.error('Error fetching posts:', error);
-    }
-  };
-
-  const navigate = useNavigate();
+    dispatch(fetchPosts(parseInt(userId)));
+  }, [dispatch, userId]);
 
   const handleDetailsClick = (postId) => {
-    navigate(`/posts/${postId}`);
+    navigate(`/posts/details/${postId}`);
   };
 
-  const handleAddNewClick = () => {
-    setShowPopup(true);
-  };
+  const handleNewPostSubmit = (e) => {
+    e.preventDefault();
 
-  const handlePopupClose = () => {
-    setShowPopup(false);
-  };
-
-  const handleInputChange = (event) => {
-    const { name, value } = event.target;
-    setNewPost((prevPost) => ({
-      ...prevPost,
-      [name]: value,
-    }));
-  };
-
-  const handleCreatePost = async () => {
-    try {
-      const response = await axios.post(
-        'https://jsonplaceholder.typicode.com/posts',
-        newPost
-      );
-      const createdPost = response.data;
-      setShowPopup(false);
-
-      const highestId = Math.max(...posts.map((post) => post.id));
-
-      createdPost.id = highestId + 1;
-
-      setPosts((prevPosts) => [...prevPosts, createdPost]);
-      setNewPost({ title: '', body: '' });
-    } catch (error) {
-      console.error('Error creating post:', error);
-    }
+    const newId = uuidv4();
+    const post = {
+      id: newId,
+      userId: parseInt(userId),
+      ...newPost,
+    };
+    console.log(newId);
+    dispatch(addPost(post));
+    setNewPost({ title: '', body: '' });
   };
 
   return (
-    <div>
-      <h1>Posts</h1>
-      <table>
-        <thead>
-          <tr>
-            <th>Title</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {posts.map((post) => (
-            <tr key={post.id}>
-              <td>{post.title}</td>
-              <td>
-                <button onClick={() => handleDetailsClick(post.id)}>
-                  Details
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <button onClick={handleAddNewClick}>Add new</button>
+    <div className="posts-container">
+      <h2 className="posts-title">Posts</h2>
+      <ul className="posts-list">
+        {posts.map((post) => (
+          <li key={post.id}>
+            <h3>{post.title}</h3>
+            <p>{post.body}</p>
+            <button onClick={() => handleDetailsClick(post.id)}>Details</button>
+          </li>
+        ))}
+      </ul>
 
-      {showPopup && (
-        <div className="popup">
-          <div className="popup-content">
-            <h2>Create New Post</h2>
-            <label>
-              Title:
-              <input
-                type="text"
-                name="title"
-                value={newPost.title}
-                onChange={handleInputChange}
-              />
-            </label>
-            <label>
-              Body:
-              <textarea
-                name="body"
-                value={newPost.body}
-                onChange={handleInputChange}
-              />
-            </label>
-            <button onClick={handleCreatePost}>Create</button>
-            <button onClick={handlePopupClose}>Cancel</button>
-          </div>
-        </div>
-      )}
+      <h2 className="new-post-title">Add New Post</h2>
+      <form onSubmit={handleNewPostSubmit}>
+        <input
+          type="text"
+          placeholder="Title"
+          value={newPost.title}
+          onChange={(e) => setNewPost({ ...newPost, title: e.target.value })}
+        />
+        <textarea
+          placeholder="Body"
+          value={newPost.body}
+          onChange={(e) => setNewPost({ ...newPost, body: e.target.value })}
+        ></textarea>
+        <button type="submit">Add Post</button>
+      </form>
     </div>
   );
 };
